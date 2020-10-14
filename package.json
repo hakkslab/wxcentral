@@ -4,6 +4,8 @@
   "description": "A central server for accessing and storing IoT weather data",
   "main": "index.js",
   "scripts": {
+    "start": "ts-node src/index.ts",
+    "create-db": "ts-node create-db.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,5 +22,15 @@
   "bugs": {
     "url": "https://github.com/hakkslab/wxcentral/issues"
   },
-  "homepage": "https://github.com/hakkslab/wxcentral#readme"
+  "homepage": "https://github.com/hakkslab/wxcentral#readme",
+  "dependencies": {
+    "ts-node": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.8",
+    "express": "^4.17.1",
+    "sqlite": "^4.0.15",
+    "sqlite3": "^5.0.0",
+    "typescript": "^4.0.3"
+  }
 }
