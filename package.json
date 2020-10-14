@@ -1,0 +1,24 @@
+{
+  "name": "wxcentral",
+  "version": "0.0.1",
+  "description": "A central server for accessing and storing IoT weather data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hakkslab/wxcentral.git"
+  },
+  "keywords": [
+    "typescript",
+    "hakks",
+    "lab"
+  ],
+  "author": "Matt Hackmann <hakk@dxprog.com>",
+  "license": "WTFPL",
+  "bugs": {
+    "url": "https://github.com/hakkslab/wxcentral/issues"
+  },
+  "homepage": "https://github.com/hakkslab/wxcentral#readme"
+}
