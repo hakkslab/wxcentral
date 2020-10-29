@@ -48,7 +48,7 @@ app.post('/observation', async (req, res) => {
   res.json({ success });
 });
 
-app.listen(3000, () => {
+app.listen(config.port, () => {
   console.log('listening');
   Db.connect(config.dbFile);
 });
