@@ -2,7 +2,6 @@ import {
   DbModel,
   tableName,
   tableSchema,
-  ColumnDescriptor,
   ColumnTypes
 } from '../lib/DbModel';
 
@@ -13,7 +12,9 @@ export enum ObservationType {
   AIR_QUALITY_PM25 = 'air_quality_pm25',
   AIR_QUALITY_PM10 = 'air_quality_pm10',
   WIND_SPEED = 'wind_speed',
-  WIND_RIECTION = 'wind_direction',
+  WIND_DIRECTION = 'wind_direction',
+  BATTERY_VOLTAGE = 'batt_voltage',
+  SOLAR_VOLTAGE = 'solar_voltage',
 }
 
 export interface IObservation {
