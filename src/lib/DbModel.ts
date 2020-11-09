@@ -202,15 +202,16 @@ export abstract class DbModel {
    * @param db The database object
    */
   public static async selectAll() {
-    // this._verifyFields();
-    // const result = await db.conn.run(`SELECT * FROM \`${this._dbTable}\``);
+    this._verifyFields();
 
-    // let retVal = null;
-    // if (result && result.rows && result.rows.length) {
-    //   retVal = result.rows.map((row: Dictionary<any>) => this._createThisFromRow(row));
-    // }
+    const retVal: Array<DbModel> = [];
+    await db.conn.each(`SELECT * FROM \`${this._dbTable}\``, (err: any, row: any) => {
+      if (!err) {
+        retVal.push(this._createThisFromRow(row));
+      }
+    });
 
-    // return retVal;
+    return retVal;
   }
 
   /**

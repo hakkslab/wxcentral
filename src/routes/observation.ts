@@ -1,6 +1,11 @@
 import * as express from 'express';
 import { Observation } from '../models/Observation';
 
+async function getObservations(req: express.Request, res: express.Response) {
+  const retVal = await Observation.selectAll();
+  res.json(retVal);
+}
+
 /**
  * Records a single observation and returns the database record
  */
@@ -53,6 +58,7 @@ async function addObservations(req: express.Request, res: express.Response) {
 }
 
 export default function registerRoutes(app: express.Express) {
+  app.get('/observations', getObservations);
   app.post('/observation', addObservation);
   app.post('/observations', addObservations);
 }
