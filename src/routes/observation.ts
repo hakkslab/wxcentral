@@ -1,8 +1,33 @@
 import * as express from 'express';
+import { Dictionary } from '../interfaces/common';
 import { Observation } from '../models/Observation';
 
+// Default to one day's worth of observations (24 * 60 * 60 * 1000)
+const DEFAULT_OBSERVATION_SPAN = 86400000;
+
 async function getObservations(req: express.Request, res: express.Response) {
-  const retVal = await Observation.selectAll();
+  const filters: Dictionary<any> = {};
+
+  if (req.query.observationType) {
+    filters.observationType = req.query.observationType;
+  }
+
+  if (req.query.observationKey) {
+    filters.observationKey = req.query.observationKey;
+  }
+
+  const startTime = req.query.startTime || Date.now() - DEFAULT_OBSERVATION_SPAN;
+  const endTime = req.query.endTime || Date.now();
+
+  console.log(req.query);
+
+  filters.observationTime = {
+    between: [ startTime, endTime ],
+  };
+
+  console.log(filters);
+
+  const retVal = await Observation.selectAll(filters);
   res.json(retVal);
 }
 
