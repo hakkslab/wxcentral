@@ -4,7 +4,7 @@ import db from './Db';
 export enum ColumnTypes {
   Number = 'number',
   String = 'string',
-  Boolean = 'boolean'
+  Boolean = 'boolean',
 }
 
 export interface ColumnDescriptor {
@@ -28,6 +28,52 @@ export interface ColumnDescriptor {
    */
   primaryKey?: boolean;
 }
+
+type WhereClause = {
+  sql: string,
+  params: Dictionary<any>,
+};
+
+// Methods that generate WHERE clause conditionals from a select conditions object
+type WhereOperatorGenerator = (field: ColumnDescriptor, value: any) => WhereClause;
+const WHERE_OPERATORS: Dictionary<WhereOperatorGenerator> = {
+  eq: (field: ColumnDescriptor, value: any): WhereClause => (
+    {
+      sql: `\`${field.name}\` = \$${field.name}`,
+      params: { [`\$${field.name}`]: value },
+    }
+  ),
+  gte: (field: ColumnDescriptor, value: any): WhereClause => (
+    {
+      sql: `\`${field.name}\` >= \$${field.name}`,
+      params: { [`\$${field.name}`]: value },
+    }
+  ),
+  gt: (field: ColumnDescriptor, value: any): WhereClause => (
+    {
+      sql: `\`${field.name}\` > \$${field.name}`,
+      params: { [`\$${field.name}`]: value },
+    }
+  ),
+  lt: (field: ColumnDescriptor, value: any): WhereClause => (
+    {
+      sql: `\`${field.name}\` < \$${field.name}`,
+      params: { [`\$${field.name}`]: value },
+    }
+  ),
+  lte: (field: ColumnDescriptor, value: any): WhereClause => (
+    {
+      sql: `\`${field.name}\` <= \$${field.name}`,
+      params: { [`\$${field.name}`]: value },
+    }
+  ),
+  between: (field: ColumnDescriptor, values: Array<number>): WhereClause => (
+    {
+      sql: `\`${field.name}\` BETWEEN \$${field.name}1 AND \$${field.name}2`,
+      params: { [`$${field.name}1`]: values[0], [`$${field.name}2`]: values[1] },
+    }
+  ),
+};
 
 export abstract class DbModel {
   // Makes TS happy with the freeform keys in `mysqlCopyFromRow`
@@ -199,17 +245,22 @@ export abstract class DbModel {
   /**
    * Returns all rows in the table
    *
-   * @param db The database object
+   * @param conditions A dictionary of conditions for the query
    */
-  public static async selectAll() {
+  public static async selectAll(conditions: Dictionary<any> = null) {
     this._verifyFields();
 
+    const whereClause: WhereClause = conditions && this._generateWhereClause(conditions);
     const retVal: Array<DbModel> = [];
-    await db.conn.each(`SELECT * FROM \`${this._dbTable}\``, (err: any, row: any) => {
-      if (!err) {
-        retVal.push(this._createThisFromRow(row));
+    await db.conn.each(
+      `SELECT * FROM \`${this._dbTable}\`${whereClause.sql ? ` WHERE ${whereClause.sql}` : ''}`,
+      whereClause.params,
+      (err: any, row: any) => {
+        if (!err) {
+          retVal.push(this._createThisFromRow(row));
+        }
       }
-    });
+    );
 
     return retVal;
   }
@@ -233,6 +284,71 @@ export abstract class DbModel {
     //   }
     //   return retVal;
     // });
+  }
+
+  /**
+   * Generates the WHERE clause for a query and the parameters object
+   * to pass.
+   *
+   * @param conditions The conditions object
+   */
+  private static _generateWhereClause(conditions: Dictionary<any> = null): WhereClause {
+    // { stationKey: 'KOUT', observationType: 'temperature', observationDate: { between: [ 1, 2 ] } }
+    const retVal = {
+      sql: '',
+      params: {},
+    };
+
+    if (!conditions) {
+      return retVal;
+    }
+
+    Object.keys(conditions).forEach(key => {
+      const field: ColumnDescriptor = this._dbFields[key];
+      if (field) {
+        const whereCondition = this._generateWhereCondition(field, conditions[key]);
+        retVal.sql = retVal.sql ? `${retVal.sql} AND ${whereCondition.sql}` : whereCondition.sql;
+        retVal.params = { ...retVal.params, ...whereCondition.params };
+      } else {
+        throw new Error(`Unknown field "${key}" on "${this._dbTable}"`);
+      }
+    });
+
+    return retVal;
+  }
+
+  private static _generateWhereCondition(field: ColumnDescriptor, condition: any): WhereClause {
+    let retVal: WhereClause = {
+      sql: '',
+      params: {},
+    };
+
+    if (typeof condition === 'object') {
+      // A passed array is 'IN'
+      if (Array.isArray(condition)) {
+        retVal.sql = `\`${field}\` IN (${
+          condition.map((value: any, index: number) => {
+            const paramName = `${this.name}${index}`;
+            retVal.params[paramName] = value;
+            return `\$${paramName}`;
+          }).join(', ')
+        }`;
+      } else {
+        // Only support for one operator per field for now
+        const operator: string = Object.keys(condition)[0];
+        const value = condition[operator];
+
+        if (operator in WHERE_OPERATORS) {
+          retVal = WHERE_OPERATORS[operator](field, value);
+        } else {
+          throw new Error(`Unsupported comparison operator "${operator}"`);
+        }
+      }
+    } else {
+      retVal = WHERE_OPERATORS.eq(field, condition);
+    }
+
+    return retVal;
   }
 
   /**
